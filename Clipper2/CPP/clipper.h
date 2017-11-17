@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <limits>
+#include <string>
 
 namespace clipperlib {
 

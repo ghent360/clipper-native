@@ -14,8 +14,9 @@
 #include <algorithm>
 #include "clipper_triangulation.h"
 #include "clipper.h"
+#include <assert.h>
 
-#include "windows.h" //debugging only
+//#include "windows.h" //debugging only
 
 namespace clipperlib {
 
@@ -314,8 +315,9 @@ namespace clipperlib {
     paths.reserve(triangles_.size());
     for (Paths::const_iterator iter = triangles_.cbegin();
       iter != triangles_.cend(); ++iter) {
-        if ((*iter).size() != 3)
-          MessageBeep(750);
+        assert((*iter).size() == 3);
+        //if ((*iter).size() != 3)
+        //  MessageBeep(750);
       paths.push_back(*iter);
     }
   }
