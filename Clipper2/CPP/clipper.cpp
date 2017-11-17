@@ -92,7 +92,7 @@ namespace clipperlib {
 
   PolyPath& PolyPath::GetChild(unsigned index)
   {
-    if (index < 0 || index >= childs_.size())
+    if (index >= childs_.size())
       throw ClipperException("invalid range in PolyPath::GetChild.");
     return *childs_[index];
   }
@@ -609,6 +609,8 @@ namespace clipperlib {
       case frNegative:
         if (e.wind_cnt != -1) return false;
         break;
+      default:
+        break;
     }
 
     switch (cliptype_) {
@@ -645,6 +647,8 @@ namespace clipperlib {
         }; 
       break;
     case ctXor: return true; //XOr is always contributing unless open
+    default:
+      break;
     }
     return false; //we should never get here 
   }
@@ -657,6 +661,7 @@ namespace clipperlib {
       case ctUnion: return (e.wind_cnt == 0 && e.wind_cnt2 == 0);
       case ctDifference: return (e.wind_cnt2 == 0);
       case ctXor: return (e.wind_cnt != 0) != (e.wind_cnt2 != 0);
+      default: break;
     }
     return false; //stops compiler error
   }
@@ -1122,6 +1127,8 @@ namespace clipperlib {
         case ctXor:
           if (Abs(edge_c->wind_cnt) != 1) return;
           break;
+        default:
+          break;
       }
       //toggle contribution ...
       if (IsHotEdge(*edge_o)) {
@@ -1238,6 +1245,8 @@ namespace clipperlib {
             break;
           case ctXor:
             AddLocalMinPoly(e1, e2, pt);
+            break;
+          default:
             break;
         }
     }
@@ -1665,7 +1674,7 @@ namespace clipperlib {
         //or if we've got to the } of an intermediate horizontal edge ...
         if (e->curr.x == horz.top.x && !isMax && !IsHorizontal(*e)) {
           pt = NextVertex(horz).pt;
-          if (is_left_to_right && (TopX(*e, pt.y) >= pt.x) ||
+          if ((is_left_to_right && (TopX(*e, pt.y) >= pt.x)) ||
             (!is_left_to_right && (TopX(*e, pt.y) <= pt.x))) break;
         };
 
