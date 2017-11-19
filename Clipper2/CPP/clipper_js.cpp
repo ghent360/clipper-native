@@ -33,17 +33,18 @@ public:
 
     val Execute1(
         clipperlib::ClipType clip_type) {
-        return Execute(clip_type, clipperlib::frEvenOdd);
+        return Execute(clip_type, clipperlib::frEvenOdd, val::undefined());
     }
 
     val Execute(
         clipperlib::ClipType clip_type,
-        clipperlib::FillRule fr);
+        clipperlib::FillRule fr,
+        val point_type);
 
     void Clear() { clipper_.Clear(); }
 
 private:
-    void PathsToJsArray(const clipperlib::Paths& solution, val& v_solution);
+    void PathsToJsArray(const clipperlib::Paths& solution, val& v_solution, const val& point_type);
 
     clipperlib::Clipper clipper_;
     double precision_multiplier_;
@@ -71,18 +72,23 @@ void ClipperJS::AddPaths(val v_paths, clipperlib::PathType polytype, bool is_ope
 }
 
 void ClipperJS::PathsToJsArray(
-    const clipperlib::Paths& solution, val& v_solution) {
+    const clipperlib::Paths& solution, val& v_solution, const val& point_type) {
     size_t path_idx = 0;
     for (auto path : solution) {
         val v_path(val::array());
         size_t idx = 0;
         for (auto point : path) {
-            val v_point(val::object());
             double x = point.x / precision_multiplier_;
             double y = point.y / precision_multiplier_;
-            v_point.set("x", x);
-            v_point.set("y", y);
-            v_path.set(idx++, v_point);
+            if (point_type.isUndefined()) {
+                val v_point(val::object());
+                v_point.set("x", x);
+                v_point.set("y", y);
+                v_path.set(idx++, v_point);
+            } else {
+                val v_point(point_type.new_(x, y));
+                v_path.set(idx++, v_point);
+            }
         }
         v_solution.set(path_idx++, v_path);
     }
@@ -90,16 +96,15 @@ void ClipperJS::PathsToJsArray(
 
 val ClipperJS::Execute(
         clipperlib::ClipType clip_type,
-        clipperlib::FillRule fr) {
+        clipperlib::FillRule fr,
+        val point_type) {
     clipperlib::Paths solution_closed;
     clipperlib::Paths solution_open;
     bool result = clipper_.Execute(clip_type, solution_closed, solution_open, fr);
-    //printf("Result = %d\n", result);
-    //printf("solution size = %d\n", solution[0].size());
     val v_solution_closed(val::array());
     val v_solution_open(val::array());
-    PathsToJsArray(solution_closed, v_solution_closed);
-    PathsToJsArray(solution_open, v_solution_open);
+    PathsToJsArray(solution_closed, v_solution_closed, point_type);
+    PathsToJsArray(solution_open, v_solution_open, point_type);
     val v_result(val::object());
     v_result.set("success", result);
     v_result.set("solution_closed", v_solution_closed);
