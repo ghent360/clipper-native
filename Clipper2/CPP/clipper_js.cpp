@@ -21,15 +21,15 @@ public:
     ClipperJS(double precision_multiplier)
         : precision_multiplier_(precision_multiplier) {}
 
-    void AddPath2(val v_path, clipperlib::PathType polytype) {
+    void AddPath2(const val& v_path, clipperlib::PathType polytype) {
         AddPath(v_path, polytype, false);
     }
-    void AddPath(val v_path, clipperlib::PathType polytype, bool is_open);
+    void AddPath(const val& v_path, clipperlib::PathType polytype, bool is_open);
 
-    void AddPaths2(val v_paths, clipperlib::PathType polytype) {
+    void AddPaths2(const val& v_paths, clipperlib::PathType polytype) {
         AddPaths(v_paths, polytype, false);
     }
-    void AddPaths(val v_paths, clipperlib::PathType polytype, bool is_open);
+    void AddPaths(const val& v_paths, clipperlib::PathType polytype, bool is_open);
 
     val Execute1(
         clipperlib::ClipType clip_type) {
@@ -39,7 +39,7 @@ public:
     val Execute(
         clipperlib::ClipType clip_type,
         clipperlib::FillRule fr,
-        val point_type);
+        const val& point_type);
 
     void Clear() { clipper_.Clear(); }
 
@@ -50,7 +50,7 @@ private:
     double precision_multiplier_;
 };
 
-void ClipperJS::AddPath(val v_path, clipperlib::PathType polytype, bool is_open) {
+void ClipperJS::AddPath(const val& v_path, clipperlib::PathType polytype, bool is_open) {
     unsigned length = v_path["length"].as<unsigned>();
     std::vector<clipperlib::Point64> path(length);
     for (unsigned idx = 0; idx < length; idx++) {
@@ -64,10 +64,14 @@ void ClipperJS::AddPath(val v_path, clipperlib::PathType polytype, bool is_open)
     clipper_.AddPath(path, polytype, is_open);
 }
 
-void ClipperJS::AddPaths(val v_paths, clipperlib::PathType polytype, bool is_open) {
+void ClipperJS::AddPaths(const val& v_paths, clipperlib::PathType polytype, bool is_open) {
     unsigned length = v_paths["length"].as<unsigned>();
+    //printf("Addin %d paths\n", length);
     for (unsigned idx = 0; idx < length; idx++) {
-        AddPath(v_paths[idx], polytype, is_open);
+        const val& path(v_paths[idx]);
+        if (!path.isUndefined()) {
+            AddPath(path, polytype, is_open);
+        }
     }
 }
 
@@ -97,7 +101,7 @@ void ClipperJS::PathsToJsArray(
 val ClipperJS::Execute(
         clipperlib::ClipType clip_type,
         clipperlib::FillRule fr,
-        val point_type) {
+        const val& point_type) {
     clipperlib::Paths solution_closed;
     clipperlib::Paths solution_open;
     bool result = clipper_.Execute(clip_type, solution_closed, solution_open, fr);
