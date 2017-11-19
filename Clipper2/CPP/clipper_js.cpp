@@ -31,34 +31,19 @@ public:
     }
     void AddPaths(val v_paths, clipperlib::PathType polytype, bool is_open);
 
-    bool Execute2(
-        clipperlib::ClipType clip_type,
-        val solution_closed) {
-        return Execute(clip_type, solution_closed, clipperlib::frEvenOdd);
+    val Execute1(
+        clipperlib::ClipType clip_type) {
+        return Execute(clip_type, clipperlib::frEvenOdd);
     }
 
-    bool Execute(
+    val Execute(
         clipperlib::ClipType clip_type,
-        val solution_closed,
-        clipperlib::FillRule fr);
-
-    bool ExecuteClosedOpen3(
-        clipperlib::ClipType clip_type,
-        val solution_closed,
-        val solution_open) {
-        return ExecuteClosedOpen(clip_type, solution_closed, solution_open, clipperlib::frEvenOdd);
-    }
-
-    bool ExecuteClosedOpen(
-        clipperlib::ClipType clip_type,
-        val solution_closed,
-        val solution_open,
         clipperlib::FillRule fr);
 
     void Clear() { clipper_.Clear(); }
 
 private:
-    void PathsToJsArray(const clipperlib::Paths& solution, val* v_solution);
+    void PathsToJsArray(const clipperlib::Paths& solution, val& v_solution);
 
     clipperlib::Clipper clipper_;
     double precision_multiplier_;
@@ -72,7 +57,9 @@ void ClipperJS::AddPath(val v_path, clipperlib::PathType polytype, bool is_open)
         int64_t y = (int64_t) (v_path[idx]["y"].as<double>() * precision_multiplier_);
         path[idx].x = x;
         path[idx].y = y;
+        //printf("[%lld, %lld] ", x, y);
     }
+    //printf("\n");
     clipper_.AddPath(path, polytype, is_open);
 }
 
@@ -84,42 +71,41 @@ void ClipperJS::AddPaths(val v_paths, clipperlib::PathType polytype, bool is_ope
 }
 
 void ClipperJS::PathsToJsArray(
-    const clipperlib::Paths& solution, val* v_solution) {
+    const clipperlib::Paths& solution, val& v_solution) {
     size_t path_idx = 0;
     for (auto path : solution) {
         val v_path(val::array());
         size_t idx = 0;
         for (auto point : path) {
             val v_point(val::object());
-            v_point.set("x", val(point.x / precision_multiplier_));
-            v_point.set("y", val(point.x / precision_multiplier_));
-            v_path[idx++] = v_point;
+            double x = point.x / precision_multiplier_;
+            double y = point.y / precision_multiplier_;
+            v_point.set("x", x);
+            v_point.set("y", y);
+            v_path.set(idx++, v_point);
         }
-        (*v_solution)[path_idx++] = v_path;
+        v_solution.set(path_idx++, v_path);
     }
 }
 
-bool ClipperJS::Execute(
+val ClipperJS::Execute(
         clipperlib::ClipType clip_type,
-        val v_solution,
-        clipperlib::FillRule fr) {
-    clipperlib::Paths solution;
-    bool result = clipper_.Execute(clip_type, solution, fr);
-    PathsToJsArray(solution, &v_solution);
-    return result;
-}
-
-bool ClipperJS::ExecuteClosedOpen(
-        clipperlib::ClipType clip_type,
-        val v_solution_closed,
-        val v_solution_open,
         clipperlib::FillRule fr) {
     clipperlib::Paths solution_closed;
     clipperlib::Paths solution_open;
     bool result = clipper_.Execute(clip_type, solution_closed, solution_open, fr);
-    PathsToJsArray(solution_closed, &v_solution_closed);
-    PathsToJsArray(solution_open, &v_solution_open);
-    return result;
+    //printf("Result = %d\n", result);
+    //printf("solution size = %d\n", solution[0].size());
+    val v_solution_closed(val::array());
+    val v_solution_open(val::array());
+    PathsToJsArray(solution_closed, v_solution_closed);
+    PathsToJsArray(solution_open, v_solution_open);
+    val v_result(val::object());
+    v_result.set("success", result);
+    v_result.set("solution_closed", v_solution_closed);
+    v_result.set("solution_open", v_solution_open);
+
+    return v_result;
 }
 
 EMSCRIPTEN_BINDINGS(clipper_js)
@@ -131,9 +117,7 @@ EMSCRIPTEN_BINDINGS(clipper_js)
         .function("AddPaths2", &ClipperJS::AddPaths2)
         .function("AddPaths", &ClipperJS::AddPaths)
         .function("Execute", &ClipperJS::Execute)
-        .function("Execute2", &ClipperJS::Execute2)
-        .function("ExecuteClosedOpen", &ClipperJS::ExecuteClosedOpen)
-        .function("ExecuteClosedOpen3", &ClipperJS::ExecuteClosedOpen3)
+        .function("Execute1", &ClipperJS::Execute1)
         .function("Clear", &ClipperJS::Clear)
         ;
     enum_<clipperlib::ClipType>("ClipType")
