@@ -1,3 +1,13 @@
+/*******************************************************************************
+* Author    :  Venelin Efremov                                                 *
+* Version   :  10.0 (beta)                                                     *
+* Date      :  8 Noveber 2017                                                  *
+* Website   :  http://www.angusj.com                                           *
+* Copyright :  Venelin Efremov 2017                                            *
+* Purpose   :  Javascript interface for base clipping module                   *
+* License   : http://www.boost.org/LICENSE_1_0.txt                             *
+*******************************************************************************/
+
 #include "clipper.h"
 #include <emscripten/bind.h>
 

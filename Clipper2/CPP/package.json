@@ -1,0 +1,25 @@
+{
+  "name": "clipperjs",
+  "version": "10.0.0",
+  "description": "Polygon clipping library by Angus Johnson",
+  "main": "clipper_js.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ghent360/clipper-native.git"
+  },
+  "keywords": [
+    "clipper",
+    "javascript",
+    "polygon",
+    "clipping"
+  ],
+  "author": "Venelin Efremov <ghent360@iqury.us>",
+  "license": "BSL-1.0",
+  "bugs": {
+    "url": "https://github.com/ghent360/clipper-native/issues"
+  },
+  "homepage": "https://github.com/ghent360/clipper-native#readme"
+}
