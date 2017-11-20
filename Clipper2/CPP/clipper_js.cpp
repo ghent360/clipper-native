@@ -21,21 +21,8 @@ public:
     ClipperJS(double precision_multiplier)
         : precision_multiplier_(precision_multiplier) {}
 
-    void AddPath2(const val& v_path, clipperlib::PathType polytype) {
-        AddPath(v_path, polytype, false);
-    }
     void AddPath(const val& v_path, clipperlib::PathType polytype, bool is_open);
-
-    void AddPaths2(const val& v_paths, clipperlib::PathType polytype) {
-        AddPaths(v_paths, polytype, false);
-    }
     void AddPaths(const val& v_paths, clipperlib::PathType polytype, bool is_open);
-
-    val Execute1(
-        clipperlib::ClipType clip_type) {
-        return Execute(clip_type, clipperlib::frEvenOdd, val::undefined());
-    }
-
     val Execute(
         clipperlib::ClipType clip_type,
         clipperlib::FillRule fr,
@@ -121,13 +108,10 @@ EMSCRIPTEN_BINDINGS(clipper_js)
 {
     class_<ClipperJS>("Clipper")
         .constructor<double>()
-        .function("AddPath2",  &ClipperJS::AddPath2)
-        .function("AddPath",  &ClipperJS::AddPath)
-        .function("AddPaths2", &ClipperJS::AddPaths2)
-        .function("AddPaths", &ClipperJS::AddPaths)
-        .function("Execute", &ClipperJS::Execute)
-        .function("Execute1", &ClipperJS::Execute1)
-        .function("Clear", &ClipperJS::Clear)
+        .function("addPath",  &ClipperJS::AddPath)
+        .function("addPaths", &ClipperJS::AddPaths)
+        .function("execute", &ClipperJS::Execute)
+        .function("clear", &ClipperJS::Clear)
         ;
     enum_<clipperlib::ClipType>("ClipType")
         .value("ctNone", clipperlib::ctNone)
