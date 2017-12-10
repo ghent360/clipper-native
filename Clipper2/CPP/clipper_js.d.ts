@@ -1,4 +1,4 @@
-import * as cl from "./index.js";
+import * as cl from "./clipper.js";
 
 interface SubModule {
     Clipper: typeof cl.Clipper;
