@@ -91,3 +91,10 @@ export declare class Clipper<T> {
     clear():void;
     delete():void;
 }
+
+export interface ClipperSubModule {
+    Clipper: typeof Clipper;
+    FillRule: typeof FillRule;
+    PathType: typeof PathType;
+    ClipType: typeof ClipType;
+}
