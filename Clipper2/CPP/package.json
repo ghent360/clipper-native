@@ -24,6 +24,10 @@
   "homepage": "https://github.com/ghent360/clipper-native#readme",
   "files": [
     "clipper_js.js",
-    "clipper_js.js.mem"
-  ]
+    "clipper_js.d.ts",
+    "clipper.d.ts",
+    "clipper_js.wasm"
+  ],
+  "main": "clipper_js.js",
+  "types": "clipper_js.d.ts"
 }

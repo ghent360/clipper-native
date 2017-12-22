@@ -1,8 +1,8 @@
 %.bc : %.cpp
-	emcc -std=c++11 -s WASM=1 -O3 -o $@ -c $<
+	emcc -std=c++11 -s TOTAL_MEMORY=256MB -s WASM=1 -O3 -o $@ -c $<
 
 clipper_js.js : clipper.bc clipper_js.bc
-	emcc --bind -s WASM=1 -O3 -o $@ clipper.bc clipper_js.bc
+	emcc --bind -s TOTAL_MEMORY=256MB -s WASM=1 -O3 -o $@ clipper.bc clipper_js.bc
 	mv $@ $@.tmp
 	sed "s/module\[[\'\"]exports[\'\"]\]/module[\"exports_\"]/g" < $@.tmp >$@.tmp1
 	cat index.head.js $@.tmp1 >$@
