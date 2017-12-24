@@ -73,9 +73,11 @@ static void removeMidPoints(
 static void simplifyPolygon(
     const clipperlib::Path& path,
     clipperlib::Path* result) {
-    clipperlib::Path simplified;
-    removeMidPoints(path, &simplified);
-    removeDuplicatePoints(simplified, result);
+    clipperlib::Path tmp1;
+    removeDuplicatePoints(path, &tmp1);
+    clipperlib::Path tmp2;
+    removeMidPoints(tmp1, &tmp2);
+    removeDuplicatePoints(tmp2, result);
 }
 
 static void simplifyPolygonSet(
