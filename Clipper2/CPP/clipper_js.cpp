@@ -17,6 +17,102 @@ using emscripten::enum_;
 using emscripten::select_overload;
 using emscripten::val;
 
+
+static bool slopesAreEqual(
+    const clipperlib::Point64& pt1,
+    const clipperlib::Point64& pt2,
+    const clipperlib::Point64& pt3) {
+    int64_t dx12 = pt1.x - pt2.x;
+    int64_t dy12 = pt1.y - pt2.y;
+    int64_t dx23 = pt2.x - pt3.x;
+    int64_t dy23 = pt2.y - pt3.y;
+    return (dy12 * dx23) == (dx12 * dy23);
+}
+
+static void removeDuplicatePoints(
+    const clipperlib::Path& path,
+    clipperlib::Path* result) {
+    if (path.size() < 2) {
+        *result = path;
+        return;
+    }
+    const clipperlib::Point64* last = &path[0];
+    result->clear();
+    result->push_back(*last);
+    for (size_t idx = 1; idx < path.size(); idx++) {
+        if (path[idx] == *last) {
+            continue;
+        }
+        last = &path[idx];
+        result->push_back(*last);
+    }
+}
+
+static void removeMidPoints(
+    const clipperlib::Path& path,
+    clipperlib::Path* result) {
+    if (path.size() < 3) {
+        *result = path;
+        return;
+    }
+    result->clear();
+    size_t lastIdx = path.size() - 1;
+    if (!slopesAreEqual(path[lastIdx], path[0], path[1])) {
+        result->push_back(path[0]);
+    }
+    for (size_t idx = 1; idx < lastIdx; idx++) {
+        if (!slopesAreEqual(path[idx - 1], path[idx], path[idx+1])) {
+            result->push_back(path[idx]);
+        }
+    }
+    if (!slopesAreEqual(path[lastIdx - 1], path[lastIdx], path[0])) {
+        result->push_back(path[lastIdx]);
+    }
+}
+
+static void simplifyPolygon(
+    const clipperlib::Path& path,
+    clipperlib::Path* result) {
+    clipperlib::Path simplified;
+    removeMidPoints(path, &simplified);
+    removeDuplicatePoints(simplified, result);
+}
+
+static void simplifyPolygonSet(
+    const clipperlib::Paths& paths,
+    clipperlib::Paths* result) {
+    result->clear();
+    for (auto path : paths) {
+        clipperlib::Path simplified;
+        simplifyPolygon(path, &simplified);
+        result->push_back(simplified);
+    }
+}
+
+static void connectWires(
+    const clipperlib::Paths& polygonSet,
+    clipperlib::Paths* result) {
+    if (polygonSet.size() < 1) {
+        *result = polygonSet;
+        return;
+    }
+    const clipperlib::Point64* lastPt = &polygonSet[0].back();
+    result->push_back(polygonSet[0]);
+    for (size_t idx = 1; idx < polygonSet.size(); idx++) {
+        if (polygonSet[idx].size() > 0) {
+            const auto& polygon = polygonSet[idx];
+            if (*lastPt == polygon[0]) {
+                auto& last = result->back();
+                last.insert(last.end(), polygon.begin() + 1, polygon.end());
+                lastPt = &last.back();
+            } else {
+                result->push_back(polygon);
+                lastPt = &polygon.back();
+            }
+        }
+    }
+}
+
 class ClipperJS {
 public:
     ClipperJS(double precision_multiplier)
@@ -161,10 +257,14 @@ val ClipperJS::ExecuteOpenClosedToPoints(
     clipperlib::Paths solution_closed;
     clipperlib::Paths solution_open;
     bool result = clipper_.Execute(clip_type, solution_closed, solution_open, fr);
+    clipperlib::Paths closed_simplified;
+    simplifyPolygonSet(solution_closed, &closed_simplified);
+    clipperlib::Paths open_simplified;
+    simplifyPolygonSet(solution_open, &open_simplified);
     val v_solution_closed(val::array());
     val v_solution_open(val::array());
-    PathsToJsArrayPoints(solution_closed, point_type, &v_solution_closed);
-    PathsToJsArrayPoints(solution_open, point_type, &v_solution_open);
+    PathsToJsArrayPoints(closed_simplified, point_type, &v_solution_closed);
+    PathsToJsArrayPoints(open_simplified, point_type, &v_solution_open);
     val v_result(val::object());
     v_result.set("success", result);
     v_result.set("solution_closed", v_solution_closed);
@@ -179,8 +279,10 @@ val ClipperJS::ExecuteClosedToPoints(
         const val& point_type) {
     clipperlib::Paths solution_closed;
     bool result = clipper_.Execute(clip_type, solution_closed, fr);
+    clipperlib::Paths closed_simplified;
+    simplifyPolygonSet(solution_closed, &closed_simplified);
     val v_solution_closed(val::array());
-    PathsToJsArrayPoints(solution_closed, point_type, &v_solution_closed);
+    PathsToJsArrayPoints(closed_simplified, point_type, &v_solution_closed);
     val v_result(val::object());
     v_result.set("success", result);
     v_result.set("solution_closed", v_solution_closed);
@@ -193,8 +295,10 @@ val ClipperJS::ExecuteClosedToArrays(
         clipperlib::FillRule fr) {
     clipperlib::Paths solution_closed;
     bool result = clipper_.Execute(clip_type, solution_closed, fr);
+    clipperlib::Paths closed_simplified;
+    simplifyPolygonSet(solution_closed, &closed_simplified);
     val v_solution_closed(val::array());
-    copyToJSArrays(solution_closed, &v_solution_closed);
+    copyToJSArrays(closed_simplified, &v_solution_closed);
     val v_result(val::object());
     v_result.set("success", result);
     v_result.set("solution_closed", v_solution_closed);
