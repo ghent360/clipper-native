@@ -202,6 +202,7 @@ namespace nativeclipper {
       ArrayBuffer::Contents contents = path->Buffer()->GetContents();
       const double* start = reinterpret_cast<double*>(contents.Data());
       const double* end = start + path->Length();
+      clipper_path.reserve(path->Length() / 2);
       while (start < end) {
         double x = *start++;
         double y = *start++;
@@ -213,6 +214,7 @@ namespace nativeclipper {
       ArrayBuffer::Contents contents = path->Buffer()->GetContents();
       const float* start = reinterpret_cast<float*>(contents.Data());
       const float* end = start + path->Length();
+      clipper_path.reserve(path->Length() / 2);
       while (start < end) {
         double x = *start++;
         double y = *start++;
@@ -224,6 +226,7 @@ namespace nativeclipper {
       ArrayBuffer::Contents contents = path->Buffer()->GetContents();
       const int32_t* start = reinterpret_cast<int32_t*>(contents.Data());
       const int32_t* end = start + path->Length();
+      clipper_path.reserve(path->Length() / 2);
       while (start < end) {
         double x = *start++;
         double y = *start++;
@@ -248,6 +251,7 @@ namespace nativeclipper {
       handle_exception(args, "Invalid path type. Has to be 'subject' or 'clip'.");
       return;
     }
+    clipper_.AddPath(clipper_path, path_type, is_open);
   }
 
   void Clipper::AddPaths(const FunctionCallbackInfo<Value>& args) {
