@@ -10,6 +10,7 @@
 
 #include "clipper.h"
 #include <emscripten/bind.h>
+#include <emscripten/emscripten.h>
 #include <vector>
 
 using emscripten::class_;
@@ -200,13 +201,15 @@ void ClipperJS::AddPaths(const val& v_paths, PathType polytype, bool is_open) {
 
 void ClipperJS::AddPathArrays(const val& v_paths, PathType polytype, bool is_open) {
     unsigned length = v_paths["length"].as<unsigned>();
-    //printf("Addin %d paths\n", length);
+    double start = emscripten_get_now();
     for (unsigned idx = 0; idx < length; idx++) {
         const val& path(v_paths[idx]);
         if (!path.isUndefined()) {
             AddPathArray(path, polytype, is_open);
         }
     }
+    double end = emscripten_get_now();
+    printf("AddPathArrays took %.3fms for %u paths\n", end - start, length);
 }
 
 void ClipperJS::PathsToJsArrayPoints(
@@ -279,32 +282,49 @@ val ClipperJS::ExecuteClosedToPoints(
         ClipType clip_type,
         FillRule fr,
         const val& point_type) {
+    double start = emscripten_get_now();
     Paths solution_closed;
     bool result = clipper_.Execute(clip_type, solution_closed, fr);
+    double executeEnd = emscripten_get_now();
     Paths closed_simplified;
     simplifyPolygonSet(solution_closed, &closed_simplified);
+    double simplifyEnd = emscripten_get_now();
     val v_solution_closed(val::array());
     PathsToJsArrayPoints(closed_simplified, point_type, &v_solution_closed);
     val v_result(val::object());
+    double convertEnd = emscripten_get_now();
     v_result.set("success", result);
     v_result.set("solution_closed", v_solution_closed);
-
+    printf("Execute: \nClipper %.3fms\nSimplify %.3fms\nConvert %.3fms\nTotal %.3fms\n",
+        executeEnd - start,
+        simplifyEnd - executeEnd,
+        convertEnd - simplifyEnd,
+        simplifyEnd - start);
     return v_result;
 }
 
 val ClipperJS::ExecuteClosedToArrays(
         ClipType clip_type,
         FillRule fr) {
+    double start = emscripten_get_now();
     Paths solution_closed;
     bool result = clipper_.Execute(clip_type, solution_closed, fr);
+    double executeEnd = emscripten_get_now();
     Paths closed_simplified;
     simplifyPolygonSet(solution_closed, &closed_simplified);
+    double simplifyEnd = emscripten_get_now();
     val v_solution_closed(val::array());
     CopyToJSArrays(closed_simplified, &v_solution_closed);
+    double convertEnd = emscripten_get_now();
     val v_result(val::object());
     v_result.set("success", result);
     v_result.set("solution_closed", v_solution_closed);
 
+    printf("Execute: \nClipper %.3fms\nSimplify %.3fms\nConvert %.3fms\nTotal %.3fms\n",
+        executeEnd - start,
+        simplifyEnd - executeEnd,
+        convertEnd - simplifyEnd,
+        simplifyEnd - start);
     return v_result;
 }
 

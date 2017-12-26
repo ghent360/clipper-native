@@ -81,17 +81,19 @@ export declare interface Result<T> {
 export declare interface ResultArrays {
     success:boolean;
     // The following two properties are defined if success is true.
-    solution_closed?:Array<Array<number>>;
-    solution_open?:Array<Array<number>>;
+    solution_closed?:Array<PolygonArray>;
+    solution_open?:Array<PolygonArray>;
 }
+
+export type PolygonArray = Float64Array;
 
 export declare class Clipper<T> {
     constructor(precisionMultiplier:number);
 
     addPath(polygon:Array<Point>, pathType:PathType, isOpen:boolean):void;
     addPaths(shape:Array<Array<Point>>, pathType:PathType, isOpen:boolean):void;
-    addPathArray(polygon:Array<number>, pathType:PathType, isOpen:boolean):void;
-    addPathArrays(shape:Array<Array<number>>, pathType:PathType, isOpen:boolean):void;
+    addPathArray(polygon:PolygonArray, pathType:PathType, isOpen:boolean):void;
+    addPathArrays(shape:Array<PolygonArray>, pathType:PathType, isOpen:boolean):void;
     executeOpenClosedToPoints(
         clipType:ClipType,
         fillRule:FillRule,
