@@ -101,7 +101,9 @@ namespace nativeclipper {
     explicit Clipper(double precision_multiplier, Isolate* isolate);
     ~Clipper();
 
-    void addPath(
+    // Helper method used by both AddPAth and AddPaths
+    // returns false if exception was thrown.
+    bool addPath(
       const FunctionCallbackInfo<Value>& args,
       Local<Value> path,
       PathType path_type,
@@ -198,11 +200,12 @@ namespace nativeclipper {
     }
     bool is_open = (args.Length() > 2) ? args[2]->BooleanValue() : false;
 
+    // No need to check the return value, we are exiting anyway.
     obj->addPath(args, path, path_type, is_open);
     args.GetReturnValue().Set(Undefined(isolate));
   }
 
-  void Clipper::addPath(
+  bool Clipper::addPath(
       const FunctionCallbackInfo<Value>& args,
       Local<Value> path_value,
       PathType path_type,
@@ -215,7 +218,7 @@ namespace nativeclipper {
       uint32_t len = path->Length();
       if (len == 0) {
         handle_exception(args, "Argument 1 is empty path.");
-        return;
+        return false;
       }
       bool has_numbers = path->Get(0)->IsNumber();
       clipper_path.reserve(has_numbers ? len / 2 : len);
@@ -227,7 +230,7 @@ namespace nativeclipper {
           x = array_value->NumberValue();
           if (idx + 1 >= len) {
             handle_exception(args, "Array of numbers has to be even length.");
-            return;
+            return false;
           }
           y = path->Get(idx + 1)->NumberValue();
           idx++;
@@ -239,11 +242,11 @@ namespace nativeclipper {
             .ToLocalChecked()->NumberValue();
         } else {
           handle_exception(args, "Unsupported path array element type.");
-          return;
+          return false;
         }
         if (isnan(x) || isnan(y)) {
           handle_exception(args, "Either x or y value is NaN.");
-          return;
+          return false;
         }
         clipper_path.push_back(
           Point64(x * precision_multiplier_, y * precision_multiplier_));
@@ -286,19 +289,22 @@ namespace nativeclipper {
       }
     } else {
         handle_exception(args, "Invalid type for argument 1. Expected Array, Float64Array, Float32Array or Int32Array.");
-        return;
+        return false;
     }
     clipper_.AddPath(clipper_path, path_type, is_open);
+    return true;
   }
 
   void Clipper::AddPaths(const FunctionCallbackInfo<Value>& args) {
+    // Input validation and conversions
     if (args.Length() < 2) {
         handle_exception(args, "Expected at least 2 arguments");
         return;
     }
-    Clipper* obj = ObjectWrap::Unwrap<Clipper>(args.Holder());
-    Isolate* isolate = args.GetIsolate();
-    Local<Value> paths = args[0];
+    if (!args[0]->IsArray()) {
+      handle_exception(args, "Expected argument 1 to be Array<Path>.");
+      return;
+    }
     if (!args[1]->IsString()) {
         handle_exception(args, "Invalid type for argument 2. Expected string.");
         return;
@@ -309,31 +315,34 @@ namespace nativeclipper {
       return;
     }
     bool is_open = (args.Length() > 2) ? args[2]->BooleanValue() : false;
-    if (!paths->IsArray()) {
-      handle_exception(args, "Expected argument 1 to be Array<Path>.");
-      return;
-    }
-    Local<Array> paths_array = Local<Array>::Cast(paths);
+    // Now iterate over the input array.
+    Local<Array> paths_array = Local<Array>::Cast(args[0]);
     uint32_t len = paths_array->Length();
     if (len == 0) {
       handle_exception(args, "Argument 1 is empty array.");
       return;
     }
+    Clipper* obj = ObjectWrap::Unwrap<Clipper>(args.Holder());
     for (uint32_t idx = 0; idx < len; idx++) {
       Local<Value> path = paths_array->Get(idx);
-      obj->addPath(args, path, path_type, is_open);
+      if (!obj->addPath(args, path, path_type, is_open)) {
+        // Exception was thrown in addPaths, just exit the method.
+        return;
+      }
     }
+    Isolate* isolate = args.GetIsolate();
     args.GetReturnValue().Set(Undefined(isolate));
   }
 
   void Clipper::Execute(const FunctionCallbackInfo<Value>& args) {
+    // Input validation and conversions
     if (args.Length() < 1) {
-        handle_exception(args, "Expected at least 2 arguments");
-        return;
+      handle_exception(args, "Expected at least 1 argument");
+      return;
     }
     if (!args[0]->IsString()) {
-        handle_exception(args, "Invalid type for argument 1. Expected string.");
-        return;
+      handle_exception(args, "Invalid type for argument 1. Expected string.");
+      return;
     }
     ClipType operation_type;
     if (!convertToEnumValue(args, args[0], ClipTypeMap, &operation_type)) {
@@ -342,14 +351,20 @@ namespace nativeclipper {
     }
     FillRule fill_rule = clipperlib::frEvenOdd;
     if (args.Length() > 1) {
+      if (!args[1]->IsString()) {
+        handle_exception(args, "Invalid type for argument 2. Expected string.");
+        return;
+      }
       if (!convertToEnumValue(args, args[1], FillRuleMap, &fill_rule)) {
         handle_exception(args, "Invalid fill rule. Has to be 'evenodd', 'nonzero', 'positive' or 'negative'.");
         return;
       }
     }
+    // We have everything let's call the C++ method
     Clipper* obj = ObjectWrap::Unwrap<Clipper>(args.Holder());
     Paths solution;
     bool success = obj->clipper_.Execute(operation_type, solution, fill_rule);
+    // Now to convert the response to JS objects
     Isolate* isolate = args.GetIsolate();
     Local<Object> result = Object::New(isolate);
     result->Set(String::NewFromUtf8(isolate, "success"), Boolean::New(isolate, success));
@@ -358,7 +373,9 @@ namespace nativeclipper {
       Local<Context> context = isolate->GetCurrentContext();
       for (size_t idx = 0; idx < solution.size(); idx++) {
         const Path& path = solution[idx];
+        // Allocate output buffer for the path
         Local<ArrayBuffer> path_buffer = ArrayBuffer::New(isolate, path.size() * 2 * sizeof(double));
+        // Convert the int64 coordinates back to doubles
         double* destination = reinterpret_cast<double*>(path_buffer->GetContents().Data());
         for (const auto& point : path) {
           double x = (double)point.x / obj->precision_multiplier_;
@@ -366,9 +383,12 @@ namespace nativeclipper {
           *destination++ = x;
           *destination++ = y;
         }
+        // Assign Float64Array to the coordinate buffer
         Local<Float64Array> path_js = Float64Array::New(path_buffer, 0, path.size() * 2);
+        // Set the Float64Array at index idx in the solution object
         solution_js->Set(context, idx, path_js);
       }
+      // Add the solution object as property of the result.
       result->Set(String::NewFromUtf8(isolate, "solution"), solution_js);
     }
     args.GetReturnValue().Set(result);
