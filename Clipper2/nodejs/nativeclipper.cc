@@ -255,7 +255,30 @@ namespace nativeclipper {
   }
 
   void Clipper::AddPaths(const FunctionCallbackInfo<Value>& args) {
-    handle_exception(args, "Not implemented");
+    if (args.Length() < 2) {
+        handle_exception(args, "Expected at least 2 arguments");
+        return;
+    }
+    Clipper* obj = ObjectWrap::Unwrap<Clipper>(args.Holder());
+    Isolate* isolate = args.GetIsolate();
+    Local<Value> paths = args[0];
+    Local<Value> path_type = args[1];
+    bool is_open = (args.Length() > 2) ? args[2]->BooleanValue() : false;
+    if (!paths->IsArray()) {
+      handle_exception(args, "Expected argument 1 to be Array<Path>.");
+      return;
+    }
+    Local<Array> paths_array = Local<Array>::Cast(paths);
+    uint32_t len = paths_array->Length();
+    if (len == 0) {
+      handle_exception(args, "Argument 1 is empty array.");
+      return;
+    }
+    for (uint32_t idx = 0; idx < len; idx++) {
+      Local<Value> path = paths_array->Get(idx);
+      obj->addPath(args, path, path_type, is_open);
+    }
+    args.GetReturnValue().Set(Undefined(isolate));
   }
 
   void Clipper::Execute(const FunctionCallbackInfo<Value>& args) {
