@@ -62,7 +62,7 @@ export type FillRule = "evenodd" | "even-odd" | "nonzero" | "non-zero" | "positi
     Float64Array, Float32Array and Int32Array have the same representation as Array<number> but could be 
     more efficient
  */
-export type Path = Array<Point>| Array<number> | Float64Array | Float32Array | Int32Array;
+export type Path = Array<Point> | Array<number> | Float64Array | Float32Array | Int32Array;
 
 /*
     The result of the operation is given as an array of Path in the Float64Array format.
@@ -70,15 +70,15 @@ export type Path = Array<Point>| Array<number> | Float64Array | Float32Array | I
 export declare interface Result {
     success:boolean;
     // The following property is defined if success is true.
-    solution_closed?:Array<Float64Array>;
+    solution?:Array<Float64Array>;
 }
 
 export declare class Clipper<T> {
     constructor(precisionMultiplier:number);
 
-    addPath(polygon:Path, pathType:PathType, isOpen?:boolean = false):void;
-    addPaths(shape:Array<Path>, pathType:PathType, isOpen?:boolean = false):void;
-    execute(clipType:ClipType, fillRule?:FillRule = "even-odd"):Result;
+    addPath(polygon:Path, pathType:PathType, isOpen?:boolean):void;
+    addPaths(shape:Array<Path>, pathType:PathType, isOpen?:boolean):void;
+    execute(clipType:ClipType, fillRule?:FillRule):Result;
     clear():void;
     precision():number;
 }
