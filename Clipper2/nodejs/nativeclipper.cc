@@ -114,6 +114,7 @@ namespace nativeclipper {
     static void AddPath(const FunctionCallbackInfo<Value>& args);
     static void AddPaths(const FunctionCallbackInfo<Value>& args);
     static void Execute(const FunctionCallbackInfo<Value>& args);
+    static void Clear(const FunctionCallbackInfo<Value>& args);
     static Persistent<Function> constructor;
 
     clipperlib::Clipper clipper_;
@@ -142,6 +143,7 @@ namespace nativeclipper {
     NODE_SET_PROTOTYPE_METHOD(tpl, "addPath", AddPath);
     NODE_SET_PROTOTYPE_METHOD(tpl, "addPaths", AddPaths);
     NODE_SET_PROTOTYPE_METHOD(tpl, "execute", Execute);
+    NODE_SET_PROTOTYPE_METHOD(tpl, "clear", Clear);
 
     constructor.Reset(isolate, tpl->GetFunction());
     exports->Set(String::NewFromUtf8(isolate, "Clipper"), tpl->GetFunction());
@@ -179,6 +181,13 @@ namespace nativeclipper {
     Isolate* isolate = args.GetIsolate();
     Clipper* obj = ObjectWrap::Unwrap<Clipper>(args.Holder());
     args.GetReturnValue().Set(Number::New(isolate, obj->precision_multiplier_));
+  }
+
+  void Clipper::Clear(const FunctionCallbackInfo<Value>& args) {
+    Isolate* isolate = args.GetIsolate();
+    Clipper* obj = ObjectWrap::Unwrap<Clipper>(args.Holder());
+    obj->clipper_.Clear();
+    args.GetReturnValue().Set(Undefined(isolate));
   }
 
   void Clipper::AddPath(const FunctionCallbackInfo<Value>& args) {
