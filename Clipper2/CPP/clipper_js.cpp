@@ -209,7 +209,7 @@ void ClipperJS::AddPathArrays(const val& v_paths, PathType polytype, bool is_ope
         }
     }
     double end = emscripten_get_now();
-    printf("AddPathArrays took %.3fms for %u paths\n", end - start, length);
+    //printf("AddPathArrays took %.3fms for %u paths\n", end - start, length);
 }
 
 void ClipperJS::PathsToJsArrayPoints(
@@ -295,11 +295,13 @@ val ClipperJS::ExecuteClosedToPoints(
     double convertEnd = emscripten_get_now();
     v_result.set("success", result);
     v_result.set("solution_closed", v_solution_closed);
+    /*
     printf("Execute: \nClipper %.3fms\nSimplify %.3fms\nConvert %.3fms\nTotal %.3fms\n",
         executeEnd - start,
         simplifyEnd - executeEnd,
         convertEnd - simplifyEnd,
         simplifyEnd - start);
+    */        
     return v_result;
 }
 
@@ -319,12 +321,13 @@ val ClipperJS::ExecuteClosedToArrays(
     val v_result(val::object());
     v_result.set("success", result);
     v_result.set("solution_closed", v_solution_closed);
-
+    /*
     printf("Execute: \nClipper %.3fms\nSimplify %.3fms\nConvert %.3fms\nTotal %.3fms\n",
         executeEnd - start,
         simplifyEnd - executeEnd,
         convertEnd - simplifyEnd,
         simplifyEnd - start);
+    */        
     return v_result;
 }
 
