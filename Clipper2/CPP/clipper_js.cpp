@@ -11,6 +11,7 @@
 #include "clipper.h"
 #include <emscripten/bind.h>
 #include <emscripten/emscripten.h>
+#include <limits>
 #include <vector>
 
 using emscripten::class_;
@@ -116,6 +117,48 @@ static void connectWires(const Paths& polygonSet, Paths* result) {
     }
 }
 
+class Bounds {
+  public:
+    Bounds()
+        : minx(std::numeric_limits<double>::infinity()),
+          miny(std::numeric_limits<double>::infinity()),
+          maxx(-std::numeric_limits<double>::infinity()),
+          maxy(-std::numeric_limits<double>::infinity()) {
+    }
+
+    void CompareX(double x) {
+        if (x < minx) {
+            minx = x;
+        }
+        if (x > maxx) {
+            maxx = x;
+        }
+    }
+
+    void CompareY(double y) {
+        if (y < miny) {
+            miny = y;
+        }
+        if (y > maxy) {
+            maxy = y;
+        }
+    }
+
+    val ToObject() {
+        val result(val::object());
+        result.set("minx", minx);
+        result.set("miny", miny);
+        result.set("maxx", maxx);
+        result.set("maxy", maxy);
+        return result;
+    }
+
+    double minx;
+    double maxx;
+    double miny;
+    double maxy;
+};
+
 class ClipperJS {
 public:
     ClipperJS(double precision_multiplier)
@@ -143,8 +186,9 @@ private:
     void PathsToJsArrayPoints(
         const Paths& solution,
         const val& point_type,
-        val* v_solution);
-    void CopyToJSArrays(const Paths& solution, val* result);
+        val* v_solution,
+        Bounds* bounds);
+    void CopyToJSArrays(const Paths& solution, val* result, Bounds* bounds);
 
     Clipper clipper_;
     double precision_multiplier_;
@@ -213,7 +257,7 @@ void ClipperJS::AddPathArrays(const val& v_paths, PathType polytype, bool is_ope
 }
 
 void ClipperJS::PathsToJsArrayPoints(
-    const Paths& solution, const val& point_type, val* v_solution) {
+    const Paths& solution, const val& point_type, val* v_solution, Bounds* bounds) {
     size_t path_idx = 0;
     for (auto path : solution) {
         val v_path(val::array());
@@ -221,6 +265,8 @@ void ClipperJS::PathsToJsArrayPoints(
         for (auto point : path) {
             double x = point.x / precision_multiplier_;
             double y = point.y / precision_multiplier_;
+            bounds->CompareX(x);
+            bounds->CompareY(y);
             if (point_type.isUndefined()) {
                 val v_point(val::object());
                 v_point.set("x", x);
@@ -235,7 +281,7 @@ void ClipperJS::PathsToJsArrayPoints(
     }
 }
 
-void ClipperJS::CopyToJSArrays(const Paths& solution, val* result) {
+void ClipperJS::CopyToJSArrays(const Paths& solution, val* result, Bounds* bounds) {
     val memory = val::module_property("buffer");
     size_t path_idx = 0;
     for (auto path : solution) {
@@ -244,6 +290,8 @@ void ClipperJS::CopyToJSArrays(const Paths& solution, val* result) {
         for (size_t idx = 0; idx < path.size(); idx++) {
             double x = (double)path[idx].x / precision_multiplier_;
             double y = (double)path[idx].y / precision_multiplier_;
+            bounds->CompareX(x);
+            bounds->CompareY(y);
             vec[2 * idx] = x;
             vec[2 * idx + 1] = y;
         }
@@ -262,19 +310,24 @@ val ClipperJS::ExecuteOpenClosedToPoints(
     Paths solution_closed;
     Paths solution_open;
     bool result = clipper_.Execute(clip_type, solution_closed, solution_open, fr);
-    Paths closed_simplified;
-    simplifyPolygonSet(solution_closed, &closed_simplified);
-    Paths open_simplified;
-    simplifyPolygonSet(solution_open, &open_simplified);
-    val v_solution_closed(val::array());
-    val v_solution_open(val::array());
-    PathsToJsArrayPoints(closed_simplified, point_type, &v_solution_closed);
-    PathsToJsArrayPoints(open_simplified, point_type, &v_solution_open);
     val v_result(val::object());
     v_result.set("success", result);
-    v_result.set("solution_closed", v_solution_closed);
-    v_result.set("solution_open", v_solution_open);
-
+    if (result) {
+        Paths closed_simplified;
+        simplifyPolygonSet(solution_closed, &closed_simplified);
+        Paths open_simplified;
+        simplifyPolygonSet(solution_open, &open_simplified);
+        val v_solution_closed(val::array());
+        Bounds bounds_closed;
+        val v_solution_open(val::array());
+        Bounds bounds_open;
+        PathsToJsArrayPoints(closed_simplified, point_type, &v_solution_closed, &bounds_closed);
+        PathsToJsArrayPoints(open_simplified, point_type, &v_solution_open, &bounds_open);
+        v_result.set("solution_closed", v_solution_closed);
+        v_result.set("bounds_closed", bounds_closed.ToObject());
+        v_result.set("solution_open", v_solution_open);
+        v_result.set("bounds_open", bounds_open.ToObject());
+    }
     return v_result;
 }
 
@@ -285,16 +338,20 @@ val ClipperJS::ExecuteClosedToPoints(
     double start = emscripten_get_now();
     Paths solution_closed;
     bool result = clipper_.Execute(clip_type, solution_closed, fr);
-    double executeEnd = emscripten_get_now();
-    Paths closed_simplified;
-    simplifyPolygonSet(solution_closed, &closed_simplified);
-    double simplifyEnd = emscripten_get_now();
-    val v_solution_closed(val::array());
-    PathsToJsArrayPoints(closed_simplified, point_type, &v_solution_closed);
     val v_result(val::object());
-    double convertEnd = emscripten_get_now();
     v_result.set("success", result);
-    v_result.set("solution_closed", v_solution_closed);
+    if (result) {
+        double executeEnd = emscripten_get_now();
+        Paths closed_simplified;
+        simplifyPolygonSet(solution_closed, &closed_simplified);
+        double simplifyEnd = emscripten_get_now();
+        val v_solution_closed(val::array());
+        Bounds bounds_closed;
+        PathsToJsArrayPoints(closed_simplified, point_type, &v_solution_closed, &bounds_closed);
+        double convertEnd = emscripten_get_now();
+        v_result.set("solution_closed", v_solution_closed);
+        v_result.set("bounds_closed", bounds_closed.ToObject());
+    }
     /*
     printf("Execute: \nClipper %.3fms\nSimplify %.3fms\nConvert %.3fms\nTotal %.3fms\n",
         executeEnd - start,
@@ -311,16 +368,20 @@ val ClipperJS::ExecuteClosedToArrays(
     double start = emscripten_get_now();
     Paths solution_closed;
     bool result = clipper_.Execute(clip_type, solution_closed, fr);
-    double executeEnd = emscripten_get_now();
-    Paths closed_simplified;
-    simplifyPolygonSet(solution_closed, &closed_simplified);
-    double simplifyEnd = emscripten_get_now();
-    val v_solution_closed(val::array());
-    CopyToJSArrays(closed_simplified, &v_solution_closed);
-    double convertEnd = emscripten_get_now();
     val v_result(val::object());
     v_result.set("success", result);
-    v_result.set("solution_closed", v_solution_closed);
+    if (result) {
+        double executeEnd = emscripten_get_now();
+        Paths closed_simplified;
+        simplifyPolygonSet(solution_closed, &closed_simplified);
+        double simplifyEnd = emscripten_get_now();
+        val v_solution_closed(val::array());
+        Bounds bounds;
+        CopyToJSArrays(closed_simplified, &v_solution_closed, &bounds);
+        double convertEnd = emscripten_get_now();
+        v_result.set("solution_closed", v_solution_closed);
+        v_result.set("bounds_closed", bounds.ToObject());
+    }
     /*
     printf("Execute: \nClipper %.3fms\nSimplify %.3fms\nConvert %.3fms\nTotal %.3fms\n",
         executeEnd - start,

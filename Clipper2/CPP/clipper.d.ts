@@ -71,11 +71,20 @@ export declare class FillRule {
     static Negative:FillRule;
 }
 
+export declare interface Bounds {
+    readonly minx:number;
+    readonly miny:number;
+    readonly maxx:number;
+    readonly maxy:number;
+}
+
 export declare interface Result<T> {
     success:boolean;
     // The following two properties are defined if success is true.
     solution_closed?:Array<Array<T>>;
     solution_open?:Array<Array<T>>;
+    bounds_closed?:Bounds;
+    bounds_open?:Bounds;
 }
 
 export declare interface ResultArrays {
@@ -83,6 +92,8 @@ export declare interface ResultArrays {
     // The following two properties are defined if success is true.
     solution_closed?:Array<PolygonArray>;
     solution_open?:Array<PolygonArray>;
+    bounds_closed?:Bounds;
+    bounds_open?:Bounds;
 }
 
 export type PolygonArray = Float64Array;
