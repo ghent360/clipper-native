@@ -1,3 +1,5 @@
+const __build = require('./build');
+console.log(`ClipperJS build ${__build.build}`);
 var Module;
 if (!Module) Module = (typeof Module !== 'undefined' ? Module : null) || {};
 module.exports = new Promise(function(resolve, reject) {
