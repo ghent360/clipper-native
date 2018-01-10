@@ -1,0 +1,4 @@
+*.bc
+build.js
+test_ts.js
+test_ts.js.map
