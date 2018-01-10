@@ -71,6 +71,20 @@ export declare class FillRule {
     static Negative:FillRule;
 }
 
+export declare class JoinType {
+    static Square:JoinType;
+    static Round:JoinType;
+    static Miter:JoinType;
+}
+
+export declare class EndType {
+    static Polygon:EndType;
+    static OpenJoined:EndType;
+    static OpenButt:EndType;
+    static OpenSquare:EndType;
+    static OpenRound:EndType;
+}
+
 export declare interface Bounds {
     readonly minx:number;
     readonly miny:number;
@@ -121,9 +135,19 @@ export declare class Clipper<T> {
     delete():void;
 }
 
+export function OffsetPaths(
+    input:Array<PolygonArray>,
+    precisionMultiplier:number,
+    offset:number,
+    jointType:JoinType,
+    endType:EndType):{solution:Array<PolygonArray>};
+
 export interface ClipperSubModule {
     Clipper: typeof Clipper;
     FillRule: typeof FillRule;
     PathType: typeof PathType;
     ClipType: typeof ClipType;
+    JoinType: typeof JoinType;
+    EndType: typeof EndType;
+    OffsetPaths: typeof OffsetPaths;
 }

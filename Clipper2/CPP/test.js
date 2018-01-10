@@ -9,5 +9,10 @@ async function main() {
     let result = c.executeClosedToArrays(cl.ClipType.Union, cl.FillRule.NonZero);
     console.log('success');
     console.log(`result = ${result.solution_closed}`);
+    result = cl.OffsetPaths([path1], 1000, 5, cl.JoinType.Miter, cl.EndType.Polygon);
+    console.log('success offset');
+    console.log(`result = ${result.solution}`);
 }
-main();
+main()
+    .then(() => console.log('complete'))
+    .catch(err => console.error(`Error:${err}`));

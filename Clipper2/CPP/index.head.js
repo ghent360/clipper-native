@@ -10,7 +10,10 @@ module.exports = new Promise(function(resolve, reject) {
             FillRule: Module.FillRule,
             PathType: Module.PathType,
             ClipType: Module.ClipType,
-            Point: Module.Point
+            Point: Module.Point,
+            JoinType: Module.JoinType,
+            EndType: Module.EndType,
+            OffsetPaths: Module.OffsetPaths,
         };
         resolve(exports);
     }
