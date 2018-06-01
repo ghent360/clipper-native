@@ -1,7 +1,7 @@
 /*******************************************************************************
 * Author    :  Venelin Efremov                                                 *
 * Version   :  10.0 (beta)                                                     *
-* Date      :  8 Noveber 2017                                                  *
+* Date      :  26 December 2017                                                  *
 * Website   :  http://www.angusj.com                                           *
 * Copyright :  Venelin Efremov 2017                                            *
 * Purpose   :  Javascript interface for base clipping module                   *
@@ -51,103 +51,34 @@ export interface Point {
 }
 
 // These are C++ enums, but they appear as classes in JavaScriot
-export declare class ClipType {
-    static None:ClipType;
-    static Intersection:ClipType;
-    static Union:ClipType;
-    static Difference:ClipType;
-    static Xor:ClipType;
-}
+export type ClipType = "none" | "intersection" | "int" | "union" | "difference" | "diff" | "xor";
+export type PathType = "subject" | "clip";
+export type FillRule = "evenodd" | "even-odd" | "nonzero" | "non-zero" | "positive" | "negative";
 
-export declare class PathType {
-    static Clip:PathType;
-    static Subject:PathType;
-}
+/*
+    A Path is a collection of points. This can be specified in the following ways:
+    Array<Point> - an array of objects with properties x and y of type number;
+    Array<number> - an array of numbers where x coordinates are folowed by y coordinates. Length must be even.
+    Float64Array, Float32Array and Int32Array have the same representation as Array<number> but could be 
+    more efficient
+ */
+export type Path = Array<Point> | Array<number> | Float64Array | Float32Array | Int32Array;
 
-export declare class FillRule {
-    static EvenOdd:FillRule;
-    static NonZero:FillRule;
-    static Positive:FillRule;
-    static Negative:FillRule;
-}
-
-export declare class JoinType {
-    static Square:JoinType;
-    static Round:JoinType;
-    static Miter:JoinType;
-}
-
-export declare class EndType {
-    static Polygon:EndType;
-    static OpenJoined:EndType;
-    static OpenButt:EndType;
-    static OpenSquare:EndType;
-    static OpenRound:EndType;
-}
-
-export declare interface Bounds {
-    readonly minx:number;
-    readonly miny:number;
-    readonly maxx:number;
-    readonly maxy:number;
-}
-
-export declare interface Result<T> {
+/*
+    The result of the operation is given as an array of Path in the Float64Array format.
+ */
+export declare interface Result {
     success:boolean;
-    // The following two properties are defined if success is true.
-    solution_closed?:Array<Array<T>>;
-    solution_open?:Array<Array<T>>;
-    bounds_closed?:Bounds;
-    bounds_open?:Bounds;
+    // The following property is defined if success is true.
+    solution?:Array<Float64Array>;
 }
-
-export declare interface ResultArrays {
-    success:boolean;
-    // The following two properties are defined if success is true.
-    solution_closed?:Array<PolygonArray>;
-    solution_open?:Array<PolygonArray>;
-    bounds_closed?:Bounds;
-    bounds_open?:Bounds;
-}
-
-export type PolygonArray = Float64Array;
 
 export declare class Clipper<T> {
     constructor(precisionMultiplier:number);
 
-    addPath(polygon:Array<Point>, pathType:PathType, isOpen:boolean):void;
-    addPaths(shape:Array<Array<Point>>, pathType:PathType, isOpen:boolean):void;
-    addPathArray(polygon:PolygonArray, pathType:PathType, isOpen:boolean):void;
-    addPathArrays(shape:Array<PolygonArray>, pathType:PathType, isOpen:boolean):void;
-    executeOpenClosedToPoints(
-        clipType:ClipType,
-        fillRule:FillRule,
-        pointType?:new(x:number, y:number) => T):Result<T>;
-    executeClosedToPoints(
-        clipType:ClipType,
-        fillRule:FillRule,
-        pointType?:new(x:number, y:number) => T):Result<T>;
-    executeClosedToArrays(
-        clipType:ClipType,
-        fillRule:FillRule):ResultArrays;
-            
+    addPath(polygon:Path, pathType:PathType, isOpen?:boolean):void;
+    addPaths(shape:Array<Path>, pathType:PathType, isOpen?:boolean):void;
+    execute(clipType:ClipType, fillRule?:FillRule):Result;
     clear():void;
-    delete():void;
-}
-
-export function OffsetPaths(
-    input:Array<PolygonArray>,
-    precisionMultiplier:number,
-    offset:number,
-    jointType:JoinType,
-    endType:EndType):{solution:Array<PolygonArray>};
-
-export interface ClipperSubModule {
-    Clipper: typeof Clipper;
-    FillRule: typeof FillRule;
-    PathType: typeof PathType;
-    ClipType: typeof ClipType;
-    JoinType: typeof JoinType;
-    EndType: typeof EndType;
-    OffsetPaths: typeof OffsetPaths;
+    precision():number;
 }

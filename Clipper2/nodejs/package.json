@@ -1,0 +1,19 @@
+{
+  "name": "nativeclipper",
+  "version": "0.0.1",
+  "description": "A Node JS bindings for Clipper",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "clipper",
+    "nodejs"
+  ],
+  "author": "Venelin Efremov <veffremov@iqury.us>",
+  "license": "BSL-1.0",
+  "devDependencies": {
+    "nan": "^2.8.0",
+    "node-gyp": "^3.6.2"
+  }
+}
