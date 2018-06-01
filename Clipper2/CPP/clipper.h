@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <limits>
 #include <string>
+#include "clipper_common.h"
 
 namespace clipperlib {
 
@@ -30,31 +31,6 @@ enum PathType { ptSubject, ptClip };
 //https://www.w3.org/TR/SVG/painting.html
 enum FillRule { frEvenOdd, frNonZero, frPositive, frNegative };
 
-struct Point64 {
-  int64_t x;
-  int64_t y;
-  Point64(int64_t x = 0, int64_t y = 0): x(x), y(y) {};
-
-  friend inline bool operator== (const Point64 &a, const Point64 &b)
-  {
-    return a.x == b.x && a.y == b.y;
-  }
-  friend inline bool operator!= (const Point64 &a, const Point64 &b)
-  {
-    return a.x != b.x || a.y != b.y;
-  }
-};
-
-typedef std::vector< Point64 > Path;
-typedef std::vector< Path > Paths;
-
-inline Path& operator <<(Path &path, const Point64 &pt) {path.push_back(pt); return path;}
-inline Paths& operator <<(Paths &paths, const Path &path) {paths.push_back(path); return paths;}
-
-std::ostream& operator <<(std::ostream &s, const Point64 &p);
-std::ostream& operator <<(std::ostream &s, const Path &p);
-std::ostream& operator <<(std::ostream &s, const Paths &p);
-
 class PolyPath
 { 
   private:
@@ -64,10 +40,10 @@ class PolyPath
   public:
 	  PolyPath(PolyPath *parent, const Path &path);
 	  virtual ~PolyPath(){};
-    PolyPath &AddChild(const Path &path);
+      PolyPath &AddChild(const Path &path);
 	  PolyPath& GetChild(unsigned index);
-    int ChildCount() const;
-    PolyPath* GetParent() const;
+      int ChildCount() const;
+      PolyPath* GetParent() const;
 	  Path& GetPath();
 	  bool IsHole() const;
 	  void Clear();
@@ -80,7 +56,7 @@ struct Rect64 {
 	int64_t top; 
 	int64_t right; 
 	int64_t bottom; 
-  Rect64(int64_t l, int64_t t, int64_t r, int64_t b) : left(l), top(t), right(r), bottom(b) {}
+    Rect64(int64_t l, int64_t t, int64_t r, int64_t b) : left(l), top(t), right(r), bottom(b) {}
 };
 
 struct Scanline;
@@ -132,23 +108,23 @@ struct Active {
 class Clipper {
   private:
     typedef std::vector < OutRec* > OutRecList;
-	  typedef std::vector < IntersectNode* > IntersectList;
-	  typedef std::priority_queue< int64_t > ScanlineList;
+	typedef std::vector < IntersectNode* > IntersectList;
+	typedef std::priority_queue< int64_t > ScanlineList;
     typedef std::vector< LocalMinima* > MinimaList;
     typedef std::vector< Vertex* > VerticesList;
 
-	  ClipType          cliptype_;
+	ClipType          cliptype_;
     FillRule          fillrule_;
     Active	         *actives_;
     Active           *sel_;
-    bool			        has_open_paths_;
+    bool		      has_open_paths_;
     MinimaList        minima_list_;
     MinimaList::iterator curr_loc_min_;
-    bool			        minima_list_sorted_;
-    OutRecList		    outrec_list_;
+    bool		      minima_list_sorted_;
+    OutRecList	      outrec_list_;
     IntersectList     intersect_list_;
     VerticesList      vertex_list_;
-    ScanlineList		  scanline_list_;
+    ScanlineList	  scanline_list_;
     void Reset();
     void InsertScanline(int64_t y);
     bool PopScanline(int64_t &y);

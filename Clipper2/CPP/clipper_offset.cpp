@@ -12,8 +12,8 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <algorithm>
-#include "clipper.h"
 #include "clipper_offset.h"
+#include "clipper.h"
 #include <math.h>
 
 namespace clipperlib {
@@ -345,7 +345,7 @@ namespace clipperlib {
           norms_[j] = PointD(-norms_[j - 1].x, -norms_[j - 1].y);
         norms_[0] = PointD(-n.x, -n.y);
         k = 0;
-        for (ssize_t j = path_in_size - 1; j >= 0; j--)
+        for (size_t j = path_in_size - 1; j >= 0; j--)
           OffsetPoint(j, k, node->join_type);
         solution_.push_back(path_out_);
       }

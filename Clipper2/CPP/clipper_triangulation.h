@@ -48,9 +48,15 @@ namespace clipperlib {
   public:
     bool Execute(ClipType clipType, Paths &solution, FillRule fr = frEvenOdd);
     bool Execute(ClipType clipType, Paths &solution_closed, Paths &solution_open, FillRule fr = frEvenOdd)
-      { return false; } //it's pointless triangulating open paths
+    {
+		//it's pointless triangulating open paths
+		return false;
+	}
     bool Execute(ClipType clipType, PolyTree &solution_closed, Paths &solution_open, FillRule fr = frEvenOdd)
-    { return false; } //the PolyTree structure is of no benefit when triangulating 
+    {
+		//the PolyTree structure is of no benefit when triangulating 
+		return false;
+	}
   };
 
 } //namespace

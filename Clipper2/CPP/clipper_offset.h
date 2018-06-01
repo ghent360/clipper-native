@@ -13,7 +13,7 @@
 
 #include <vector>
 #include <cstdlib>
-#include "clipper.h"
+#include "clipper_common.h"
 
 namespace clipperlib {
 
